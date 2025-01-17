@@ -1,0 +1,267 @@
+# Deploying a Flask Application on DigitalOcean
+
+This guide provides step-by-step instructions to deploy a Flask application on DigitalOcean, including setting up Gunicorn, Nginx, and configuring PostgreSQL.
+
+---
+
+## **1. Connect to Your Droplet**
+
+1. Open a terminal and connect to your Droplet via SSH:
+   ```bash
+   ssh username@203.0.113.0
+   Replace username with your Droplet's username (default is root) and 203.0.113.0 with your Droplet's IP address.
+   ```
+
+If prompted, press ENTER and type yes to confirm the connection.
+
+If not using SSH keys, enter your password when prompted.
+
+2. Prepare the Flask Application
+   Navigate to your application directory:
+
+bash
+Copy
+Edit
+cd myapps/weather/
+Open and edit the environment file:
+
+bash
+Copy
+Edit
+vi .env
+To save and exit, type :wq.
+Verify the .env file:
+
+bash
+Copy
+Edit
+cat .env
+Activate your virtual environment:
+
+bash
+Copy
+Edit
+source env/bin/activate
+Install dependencies:
+
+bash
+Copy
+Edit
+pip install -r weather_app/requirements.txt
+Clone your application repository (if not already cloned):
+
+bash
+Copy
+Edit
+git clone https://github.com/CaptainBett/weather_app.git 3. Configure Firewall
+Enable the firewall:
+
+bash
+Copy
+Edit
+sudo ufw enable
+Allow Flask and SSH:
+
+bash
+Copy
+Edit
+sudo ufw allow 5000
+sudo ufw allow ssh
+Reload firewall rules:
+
+bash
+Copy
+Edit
+sudo ufw reload
+Check firewall status:
+
+bash
+Copy
+Edit
+sudo ufw status 4. Set Up Gunicorn
+Create a wsgi.py file:
+
+bash
+Copy
+Edit
+touch wsgi.py
+sudo nano wsgi.py
+Add the following content:
+
+python
+Copy
+Edit
+from app import app
+
+if **name** == "**main**":
+app.run()
+Test Gunicorn:
+
+bash
+Copy
+Edit
+gunicorn --bind 0.0.0.0:5000 wsgi:app
+Deactivate the virtual environment:
+
+bash
+Copy
+Edit
+deactivate
+Create a systemd service file:
+
+bash
+Copy
+Edit
+sudo nano /etc/systemd/system/weather_app.service
+Add the following content:
+
+ini
+Copy
+Edit
+[Unit]
+Description=Gunicorn instance to serve weather app
+After=network.target
+
+[Service]
+User=bett
+Group=www-data
+WorkingDirectory=/home/bett/myapps/weather_app
+Environment="PATH=/home/bett/myapps/weather_app/env/bin"
+ExecStart=/home/bett/myapps/weather_app/env/bin/gunicorn --workers 3 --bind unix:/home/bett/myapps/weather_app/weather_app.sock -m 007 wsgi:app
+
+[Install]
+WantedBy=multi-user.target
+Reload and start the service:
+
+bash
+Copy
+Edit
+sudo systemctl daemon-reload
+sudo systemctl start weather_app
+sudo systemctl enable weather_app
+sudo systemctl status weather_app 5. Set Up Nginx
+Create a new Nginx configuration file:
+
+bash
+Copy
+Edit
+sudo nano /etc/nginx/sites-available/weather_app.conf
+Add the following content:
+
+nginx
+Copy
+Edit
+server {
+server_name captaincodes.co.ke www.captaincodes.co.ke;
+listen 80;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/home/bett/myapps/weather_app/weather_app.sock;
+    }
+
+}
+Enable the configuration:
+
+bash
+Copy
+Edit
+sudo ln -s /etc/nginx/sites-available/weather_app.conf /etc/nginx/sites-enabled/
+Test Nginx configuration:
+
+bash
+Copy
+Edit
+sudo nginx -t
+Restart Nginx:
+
+bash
+Copy
+Edit
+sudo systemctl restart nginx
+Update firewall rules:
+
+bash
+Copy
+Edit
+sudo ufw delete allow 5000
+sudo ufw allow "Nginx Full"
+sudo ufw status
+Check Nginx status:
+
+bash
+Copy
+Edit
+sudo systemctl status nginx 6. Configure PostgreSQL (Optional)
+Install PostgreSQL:
+
+bash
+Copy
+Edit
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+Log in as the postgres user:
+
+bash
+Copy
+Edit
+sudo -i -u postgres
+Create a new database and user:
+
+sql
+Copy
+Edit
+CREATE DATABASE weather_db;
+CREATE USER weather_user WITH PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE weather_db TO weather_user;
+Update the Flask application configuration to connect to the database:
+
+python
+Copy
+Edit
+SQLALCHEMY_DATABASE_URI = 'postgresql://weather_user:secure_password@localhost/weather_db' 7. Update Domain Nameservers
+Log in to your domain registrar (e.g., Truehost).
+
+Update the nameservers to:
+
+Copy
+Edit
+ns1.digitalocean.com
+ns2.digitalocean.com
+ns3.digitalocean.com
+Wait for propagation (24-48 hours) and verify using:
+
+bash
+Copy
+Edit
+whois captaincodes.co.ke | grep "Name Server"
+Expected output:
+
+arduino
+Copy
+Edit
+Name Server: ns1.digitalocean.com
+Name Server: ns2.digitalocean.com
+Name Server: ns3.digitalocean.com 8. Troubleshooting Logs
+Check Nginx logs:
+
+bash
+Copy
+Edit
+sudo tail /var/log/nginx/error.log
+sudo tail -f /var/log/nginx/error.log
+Check Gunicorn logs:
+
+bash
+Copy
+Edit
+sudo systemctl status weather_app.service
+Restart services if needed:
+
+bash
+Copy
+Edit
+sudo systemctl restart weather_app
+sudo systemctl restart nginx 9. Notes
+Ensure your .env file contains sensitive credentials and is not committed to version control.
+For better security, consider using HTTPS by setting up an SSL certificate (e.g., Let's Encrypt).
