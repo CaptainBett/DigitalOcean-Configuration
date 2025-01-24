@@ -270,3 +270,10 @@ sudo systemctl restart nginx
 9. Notes
 Ensure your .env file contains sensitive credentials and is not committed to version control.
 For better security, consider using HTTPS by setting up an SSL certificate (e.g., Let's Encrypt).
+
+sudo apt update &&  sudo apt install certbot python3-certbot-nginx -y
+  115  clear
+  116  sudo certbot --nginx -d captaincodes.co.ke -d www.captaincodes.co.ke
+  117  sudo systemctl status snap.certbot.renew.service
+  118  clear
+  119  sudo certbot renew --dry-run
