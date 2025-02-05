@@ -277,3 +277,19 @@ sudo apt update &&  sudo apt install certbot python3-certbot-nginx -y
   117  sudo systemctl status snap.certbot.renew.service
   118  clear
   119  sudo certbot renew --dry-run
+
+
+  Explanation of Attributes:
+Superuser: Can override all access restrictions.
+
+Create role: Can create new roles (users).
+
+Create DB: Can create new databases.
+
+Replication: Can initiate streaming replication and backups.
+
+Bypass RLS: Can bypass row-level security policies.
+
+If you want to create a superuser with all these attributes in the future, you can use:
+
+CREATE ROLE captain WITH SUPERUSER CREATEROLE CREATEDB REPLICATION BYPASSRLS LOGIN PASSWORD 'your_password_here';
